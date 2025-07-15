@@ -1,33 +1,59 @@
 import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+
+interface Todo {
+  id: number
+  text: string
+}
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [todos, setTodos] = useState<Todo[]>([])
+  const [inputValue, setInputValue] = useState('')
+
+  const addTodo = () => {
+    if (inputValue.trim() === '') return
+    
+    const newTodo: Todo = {
+      id: Date.now(),
+      text: inputValue
+    }
+    
+    setTodos([...todos, newTodo])
+    setInputValue('')
+  }
+
+  const deleteTodo = (id: number) => {
+    setTodos(todos.filter(todo => todo.id !== id))
+  }
 
   return (
     <>
+      <h1>TODOリスト</h1>
+      
       <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+        <input
+          type="text"
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          placeholder="新しいTODOを入力"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              addTodo()
+            }
+          }}
+        />
+        <button onClick={addTodo}>追加</button>
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
+
+      <ul>
+        {todos.map((todo) => (
+          <li key={todo.id}>
+            <span>{todo.text}</span>
+            <button onClick={() => deleteTodo(todo.id)}>削除</button>
+          </li>
+        ))}
+      </ul>
+
+      {todos.length === 0 && <p>TODOがありません</p>}
     </>
   )
 }
