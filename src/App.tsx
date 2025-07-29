@@ -27,6 +27,8 @@ function App() {
 
   return (
     <>
+      <div style={{ paddingLeft: "24px" }}>
+
       <h1>TODOリスト</h1>
       
       <div>
@@ -54,6 +56,7 @@ function App() {
       </ul>
 
       {todos.length === 0 && <p>TODOがありません</p>}
+      </div>
     </>
   )
 }
