@@ -15,6 +15,8 @@ type Action =
   | { type: 'SET_INPUT'; payload: string }
   | { type: 'ADD_TODO' }
   | { type: 'DELETE_TODO'; payload: number }
+  | { type: 'EDIT_TODO'; payload: { id: number; text: string } }
+  | { type: 'MOVE_TODO'; payload: { from: number; to: number } }
 
 const initialState: State = {
   todos: [],
@@ -40,14 +42,46 @@ function reducer(state: State, action: Action): State {
         ...state,
         todos: state.todos.filter(todo => todo.id !== action.payload)
       }
+    case 'EDIT_TODO':
+      return {
+        ...state,
+        todos: state.todos.map(todo =>
+          todo.id === action.payload.id ? { ...todo, text: action.payload.text } : todo
+        )
+      }
+    case 'MOVE_TODO': {
+      const { from, to } = action.payload
+      if (from < 0 || to < 0 || from >= state.todos.length || to >= state.todos.length) return state
+      const todos = [...state.todos]
+      const [moved] = todos.splice(from, 1)
+      todos.splice(to, 0, moved)
+      return { ...state, todos }
+    }
     default:
       return state
   }
 }
 
 
+import { useState } from 'react'
+
 function App() {
   const [state, dispatch] = useReducer(reducer, initialState)
+  const [editId, setEditId] = useState<number | null>(null)
+  const [editText, setEditText] = useState('')
+
+  const startEdit = (todo: Todo) => {
+    setEditId(todo.id)
+    setEditText(todo.text)
+  }
+
+  const submitEdit = (id: number) => {
+    if (editText.trim() !== '') {
+      dispatch({ type: 'EDIT_TODO', payload: { id, text: editText } })
+    }
+    setEditId(null)
+    setEditText('')
+  }
 
   return (
     <>
@@ -68,10 +102,40 @@ function App() {
           <button onClick={() => dispatch({ type: 'ADD_TODO' })}>追加</button>
         </div>
         <ul>
-          {state.todos.map((todo) => (
-            <li key={todo.id}>
-              <span>{todo.text}</span>
+          {state.todos.map((todo, idx) => (
+            <li key={todo.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {editId === todo.id ? (
+                <>
+                  <input
+                    type="text"
+                    value={editText}
+                    onChange={e => setEditText(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') submitEdit(todo.id)
+                    }}
+                    autoFocus
+                    style={{ marginRight: 4 }}
+                  />
+                  <button onClick={() => submitEdit(todo.id)}>保存</button>
+                  <button onClick={() => { setEditId(null); setEditText('') }}>キャンセル</button>
+                </>
+              ) : (
+                <>
+                  <span>{todo.text}</span>
+                  <button onClick={() => startEdit(todo)}>編集</button>
+                </>
+              )}
               <button onClick={() => dispatch({ type: 'DELETE_TODO', payload: todo.id })}>削除</button>
+              <button
+                onClick={() => dispatch({ type: 'MOVE_TODO', payload: { from: idx, to: idx - 1 } })}
+                disabled={idx === 0}
+                title="上に移動"
+              >↑</button>
+              <button
+                onClick={() => dispatch({ type: 'MOVE_TODO', payload: { from: idx, to: idx + 1 } })}
+                disabled={idx === state.todos.length - 1}
+                title="下に移動"
+              >↓</button>
             </li>
           ))}
         </ul>
