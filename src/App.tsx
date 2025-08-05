@@ -1,5 +1,5 @@
+import { useState, useRef, useEffect, useReducer } from 'react'
 
-import { useReducer } from 'react'
 
 interface Todo {
   id: number
@@ -63,12 +63,18 @@ function reducer(state: State, action: Action): State {
 }
 
 
-import { useState } from 'react'
 
 function App() {
   const [state, dispatch] = useReducer(reducer, initialState)
   const [editId, setEditId] = useState<number | null>(null)
   const [editText, setEditText] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (state.inputValue === '') {
+      inputRef.current?.focus()
+    }
+  }, [state.inputValue])
 
   const startEdit = (todo: Todo) => {
     setEditId(todo.id)
@@ -89,6 +95,7 @@ function App() {
         <h1>TODOリスト</h1>
         <div>
           <input
+            ref={inputRef}
             type="text"
             value={state.inputValue}
             onChange={(e) => dispatch({ type: 'SET_INPUT', payload: e.target.value })}
