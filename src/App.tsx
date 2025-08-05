@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useReducer } from 'react'
 interface Todo {
   id: number
   text: string
+  remaining: number // 残り秒数
 }
 
 type State = {
@@ -17,7 +18,9 @@ type Action =
   | { type: 'DELETE_TODO'; payload: number }
   | { type: 'EDIT_TODO'; payload: { id: number; text: string } }
   | { type: 'MOVE_TODO'; payload: { from: number; to: number } }
+  | { type: 'TICK' }
 
+const DEFAULT_LIMIT = 10 // 制限時間（秒）
 const initialState: State = {
   todos: [],
   inputValue: ''
@@ -31,7 +34,8 @@ function reducer(state: State, action: Action): State {
       if (state.inputValue.trim() === '') return state
       const newTodo: Todo = {
         id: Date.now(),
-        text: state.inputValue
+        text: state.inputValue,
+        remaining: DEFAULT_LIMIT
       }
       return {
         todos: [...state.todos, newTodo],
@@ -49,6 +53,14 @@ function reducer(state: State, action: Action): State {
           todo.id === action.payload.id ? { ...todo, text: action.payload.text } : todo
         )
       }
+    // タイマー減算アクション
+    case 'TICK': {
+      // 1秒減らし、0以下なら削除
+      const todos = state.todos
+        .map(todo => ({ ...todo, remaining: todo.remaining - 1 }))
+        .filter(todo => todo.remaining > 0)
+      return { ...state, todos }
+    }
     case 'MOVE_TODO': {
       const { from, to } = action.payload
       if (from < 0 || to < 0 || from >= state.todos.length || to >= state.todos.length) return state
@@ -69,6 +81,13 @@ function App() {
   const [editId, setEditId] = useState<number | null>(null)
   const [editText, setEditText] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      dispatch({ type: 'TICK' })
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [])
 
   useEffect(() => {
     if (state.inputValue === '') {
@@ -111,6 +130,9 @@ function App() {
         <ul>
           {state.todos.map((todo, idx) => (
             <li key={todo.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ minWidth: 60, color: todo.remaining <= 10 ? 'red' : undefined }}>
+                残り: {todo.remaining}s
+              </span>
               {editId === todo.id ? (
                 <>
                   <input
